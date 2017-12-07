@@ -74,8 +74,8 @@ print(opt_avail)
 """ Returns a 5-tuple holding all the current device settings
 (format, last_frame, (pixels_per_line,lines), depth, bytes_per_line)
 Format = "grey", "color", "red"
-Pixels_per_line = width of the scanned image
-lines = height of the scanner image.
+Pixels_per_line = width of the scanned image = longueur
+lines = height of the scanner image. = largeur
 depth = number of bits per sample.
 bytes_per_line = the number of bytes per line. 
 """
@@ -100,8 +100,8 @@ except:
 
 """ Scan area""" 
 try:
-    dev.br_x = 50.
-    dev.br_y = 50.
+    dev.pixels_per_line= 50.
+    dev.lines = 50.
 except:
     print('Cannot set scan area, using default')
 
