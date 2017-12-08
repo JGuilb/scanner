@@ -99,10 +99,10 @@ except:
 
 """ Scan area""" 
 try:
-    dev.tl_x = 0
-    dev.tl_y = 50
-    dev.br_y = 120
-    dev.br_x = 200
+    dev.tl_x = 50
+    dev.tl_y = 0
+    dev.br_y = 200
+    dev.br_x = 120
 except:
     print('Cannot set scan area, using default')
 
@@ -117,7 +117,8 @@ print('Device parameters:', params)
 #
 # Création d'un fichier zip "scanner.zip"
 #
-zfile = zipfile.ZipFile('scanner.zip','w',zipfile.ZIP_DEFLATED,True)
+#zfile = zipfile.ZipFile('scanner.zip','w',zipfile.ZIP_DEFLATED,True)
+zfile = zipfile.ZipFile('scanner.zip','w')
 zfile.close()
 
 """
@@ -134,7 +135,8 @@ im = dev.snap() #Read image data and return a PIL.Image object.
 #
 """ Ici, on inclut dans l'archive "Scanner.zip" le fichier im qui est 'coucou.png'."""
 def ajoutZip(name):
-    zfile = zipfile.ZipFile('scanner.zip','a',zipfile.ZIP_DEFLATED,True)
+    #zfile = zipfile.ZipFile('scanner.zip','a',zipfile.ZIP_DEFLATED,True)
+    zfile = zipfile.ZipFile('scanner.zip','a')
     zfile.write(name)
     zfile.close()
 
