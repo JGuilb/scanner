@@ -1,0 +1,189 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+import sane
+import numpy
+from PIL import Image
+import zipfile
+import zlib
+import time
+import datetime
+from datetime import datetime
+ 
+
+"""
+SANE stands for ``Scanner Access Now Easy''. It is a universal
+interface that enables you to acquire images from any device that
+produces raster images, including flatbed scanners, video and still
+cameras and frame grabbers. The intent of SANE is to make it possible
+to write image-processing applications without having to worry about
+peculiarities of individual devices. Looking at it from the other side,
+SANE makes it possible to write a device driver once and only once.
+That same device driver can then be used by any SANE-compliant application.
+"""
+#
+# Change these for 16bit / grayscale scans
+#
+depth = 8
+mode = 'color'
+
+#
+# Initialize sane
+#
+"""
+Return a tuple ('Nom de la version': sane_ver, ver_maj, ver_min, ver_patch) 
+"""
+ver = sane.init()
+#print('SANE version:', ver)
+
+#
+# Get devices
+#
+"""
+Return a list of 4-tuples containing the available scanning devices.
+Each tuple is of the format (device_name, vendor, model, type) with
+device_name = the device name, suitabe for passing to sane.open()
+"""
+devices = sane.get_devices()
+#print('Available devices:', devices)
+
+#
+# Open first device
+#
+"""
+Open a device for scanning. Suitable values for devname are returned
+in the first item of the tuples returned by san.get_devices(). Returns
+a SaneDev object on success. SaneDev is a class representing a SANE device. 
+"""
+dev = sane.open(devices[0][0])
+
+#
+# List of all the available options
+#
+"""
+Returns a list of tuples describing all the available options
+"""
+
+opt_avail = dev.get_options()
+#print(opt_avail)
+
+
+#
+# Gives all the current device settings:
+#
+""" Returns a 5-tuple holding all the current device settings
+(format, last_frame, (pixels_per_line,lines), depth, bytes_per_line)
+Format = "grey", "color", "red"
+Pixels_per_line = width of the scanned image = longueur
+lines = height of the scanner image. = largeur
+depth = number of bits per sample.
+bytes_per_line = the number of bytes per line. 
+"""
+params = dev.get_parameters()
+
+#
+# Set some options
+#
+""" Format""" 
+try:
+    dev.mode = mode
+except:
+    print('Cannot set mode, defaulting to %s' % params[0])
+
+
+""" Profondeur""" 
+try:
+    dev.depth = depth
+except:
+    print('Cannot set depth, defaulting to %d' % params[3])
+
+""" Scan area""" 
+try:
+    dev.tl_x = 0
+    dev.tl_y = 50
+    dev.br_y = 120
+    dev.br_x = 200
+except:
+    print('Cannot set scan area, using default')
+
+#
+# Imprime les réglages utilisés pour le scan
+#
+
+params = dev.get_parameters()
+print('Device parameters:', params)
+
+
+#
+# Création d'un fichier zip "scanner.zip"
+#
+zfile = zipfile.ZipFile('scanner.zip','w',zipfile.ZIP_DEFLATED,True)
+zfile.close()
+
+"""
+#
+# Start a scan and get and PIL.Image object
+#
+dev.start()
+im = dev.snap() #Read image data and return a PIL.Image object. 
+#im.save('coucou.png')
+"""
+
+#
+# Enregistre toutes les images dans un fichier zip s'appelant "Scaner.odt" 
+#
+""" Ici, on inclut dans l'archive "Scanner.zip" le fichier im qui est 'coucou.png'."""
+def ajoutZip(name):
+    zfile = zipfile.ZipFile('scanner.zip','a',zipfile.ZIP_DEFLATED,True)
+    zfile.write(name)
+    zfile.close()
+
+
+#
+# Name the file
+#
+def name_image(x):
+    date = datetime.today()
+    d = '{:%Y-%m-%d %H:%M:%S}'.format(date)
+    a = str(d)
+    name = 'échantillon n°'+ str(x)+ ' date:'+a
+    real_n = name+'.png'
+    return real_n
+#
+# Création d'une boucle qui enregistre toutes les x minutes une photo
+#
+
+def run():
+    i = 0
+    while i < 1:
+        if(i!=2):
+            dev.start() #Start a scan
+            im = dev.snap() #Read image data and return a PIL.Image object.
+            name = name_image(i+1)
+            im.save(name) 
+            ajoutZip(name)
+            attente = 0 #Temps d'attente de 3 minutes 
+            time.sleep(attente)
+        else:
+            dev.start() #Start a scan
+            im = dev.snap() #Read image data and return a PIL.Image object.
+            name = name_image(i+1)
+            im.save(name) 
+            ajoutZip(name)
+        i += 1
+       
+run() 
+"""
+#
+# Lister les fichier contenus dans une archive ZIP
+#
+zfile = zipfile.ZipFile('scanner.zip','r')
+for zinfo in zfile.infolist():
+    print('%s (%s --> %s)' % (zinfo.filename, zinfo.file_size,
+                              zinfo.compress_size))
+zfile.close()
+"""
+#
+# Close the device
+#
+dev.close()
