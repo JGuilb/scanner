@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-!"/>
+        <title>Scanner pour incubateur</title>
+    </head>
+	
+    <body>
+	<table border =1>
+	 {% for key, value in result.iteritems() %}
+	   
+	   <tr>
+	   	<th> {{key}} </th>
+		<td> {{ value }} </td>
+	   </tr>
+	{% endfor %}
+	</table>
+
+	<h1> Vos fichiers seront disponibles sous forme de dossier Zip <h1>
+    <body>
+    <a href = "http://localhost:5000">retourner à la page d'accueil </a>
+</html>
