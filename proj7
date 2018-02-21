@@ -1,0 +1,226 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+from __future__ import print_function
+from flask import Flask, render_template, request
+import sane
+import numpy
+from PIL import Image
+import zipfile
+import zlib
+import time
+import datetime
+from datetime import datetime
+
+#---- SCANNER REGLAGES ------------------------------------------------
+
+
+#
+# Change these for 16bit / grayscale scans
+#
+depth = 8
+mode = 'color'
+
+#
+# Initialize sane
+#
+"""
+Return a tuple ('Nom de la version': sane_ver, ver_maj, ver_min, ver_patch) 
+"""
+ver = sane.init()
+
+#
+# Get devices
+#
+"""
+Return a list of 4-tuples containing the available scanning devices.
+Each tuple is of the format (device_name, vendor, model, type) with
+device_name = the device name, suitabe for passing to sane.open()
+"""
+devices = sane.get_devices()
+
+
+#
+# Open first device
+#
+"""
+Open a device for scanning. Suitable values for devname are returned
+in the first item of the tuples returned by san.get_devices(). Returns
+a SaneDev object on success. SaneDev is a class representing a SANE device. 
+"""
+dev = sane.open(devices[0][0])
+
+#
+# List of all the available options
+#
+"""
+Returns a list of tuples describing all the available options
+"""
+
+opt_avail = dev.get_options()
+
+#
+# Gives all the current device settings:
+#
+""" Returns a 5-tuple holding all the current device settings
+(format, last_frame, (pixels_per_line,lines), depth, bytes_per_line)
+Format = "grey", "color", "red"
+Pixels_per_line = width of the scanned image = longueur
+lines = height of the scanner image. = largeur
+depth = number of bits per sample.
+bytes_per_line = the number of bytes per line. 
+"""
+params = dev.get_parameters()
+
+#
+# Set some options
+#
+""" Format""" 
+try:
+    dev.mode = mode
+except:
+    print('Cannot set mode, defaulting to %s' % params[0])
+
+
+""" Profondeur""" 
+try:
+    dev.depth = depth
+except:
+    print('Cannot set depth, defaulting to %d' % params[3])
+
+
+
+
+#---- SCANNER ZIP ----------------------------------------------------------
+    
+#
+# Création d'un fichier zip "scanner.zip"
+#
+zfile = zipfile.ZipFile('scanner.zip','w',zipfile.ZIP_DEFLATED,True)
+#zfile = zipfile.ZipFile('scanner.zip','w')
+zfile.close()
+
+
+#
+# Enregistre toutes les images dans un fichier zip s'appelant "Scaner.odt" 
+#
+""" Ici, on inclut dans l'archive "Scanner.zip" le fichier im qui est 'coucou.png'."""
+def ajoutZip(name):
+    zfile = zipfile.ZipFile('scanner.zip','a',zipfile.ZIP_DEFLATED,True)
+    #zfile = zipfile.ZipFile('scanner.zip','a')
+    zfile.write(name)
+    zfile.close()
+
+
+#
+# Name the file
+#
+def name_image(x):
+    date = datetime.today()
+    d = '{:%d-%m %H:%M}'.format(date)
+    a = str(d)
+    if (x<10):
+        name = 'n_'+ str(0)+ str(x)+ ' date:'+a
+        real_n = name+'.png'
+    else:
+        name = 'n_'+ str(x)+ ' date:'+a
+        real_n = name+'.png'
+    return real_n
+
+#----- SCANNER PARAMETRES ----------------------------------------------------
+
+#
+# Set area 
+#
+def set_area(plaq):
+    dev.tl_x = 68 #Largeur d'une bande
+    dev.tl_y = 0 #Largeur d'une bande
+    if plaq == 1:
+      dev.br_y = 127
+      dev.br_x = 153 #68+85
+    if plaq ==2:
+       dev.br_y = 254
+       dev.br_x = 153
+
+#---- RUN ------------------------------------------------------------
+#
+# Création d'une boucle qui enregistre toutes les x minutes une photo
+#
+"""
+def run():
+    i = 0
+    (attente,nb_sample) = set_attente()
+    set_area()
+    print("Debut de l'acquisition")
+    while i < nb_sample:
+        if(i!=nb_sample-1):
+            dev.start() #Start a scan
+            im = dev.snap() #Read image data and return a PIL.Image object.
+            name = name_image(i+1)
+            im.save(name) 
+            ajoutZip(name)
+            time.sleep(attente)
+        else:
+            dev.start() #Start a scan
+            im = dev.snap() #Read image data and return a PIL.Image object.
+            name = name_image(i+1)
+            im.save(name) 
+            ajoutZip(name)
+        i += 1
+"""
+#---- New run --------------------------------------------------------
+
+def run_scanner(ti,samples, aera):
+    i = 0
+    while i < samples:
+        if(i!=samples-1):
+            dev.start()
+            im = dev.snap()
+            name = name_image(i+1)
+            im.save(name)
+            ajoutZip(name)
+            time.sleep(ti)
+        else:
+            dev.start()
+            im = dev.snap() #Read image data and return a PIL.Image object.
+            name = name_image(i+1)
+            im.save(name) 
+            ajoutZip(name)
+        i +=1
+
+#---- INTERFACE -------------------------------------------------------
+app = Flask(__name__)
+
+@app.route('/')
+def acceuil():
+    return render_template('accueil.html')
+
+@app.route('/result', methods= ['POST', 'GET'])
+def result():
+    if request.method=='POST':
+        result = request.form
+        time = request.form.get('time')
+        t = int(time)
+        samples = request.form.get('prises')
+        s= int(samples)
+        plaq = request.form.get('samples')
+        p = int(plaq)
+        aera = set_area(p)
+        run_scanner(t,s,aera)
+    return render_template("Bienvenue.html", result = result)
+        
+
+
+#---- RUN PAGE WEB --------------------------------------------------------------------
+    
+
+if __name__ == '__main__':
+    app.run()
+
+#------------------------------------------------------------------------
+    
+#
+# Close the device
+#
+dev.close()                                             
+
+
